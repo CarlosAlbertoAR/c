@@ -23,8 +23,8 @@
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ *  See the GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <http://www.gnu.org/licenses/gpl.html>.
@@ -33,8 +33,8 @@
 
 #include <Arduino.h>
 
-#define IR_INPUT_PIN    2
-//#define IR_INPUT_PIN    3
+#define IR_RECEIVE_PIN    2
+//#define IR_RECEIVE_PIN    3
 
 /*
  * Helper macro for getting a macro definition as string
@@ -55,19 +55,19 @@ void setup()
     Serial.println(F("START " __FILE__ " from " __DATE__));
 
 #if defined(EICRA) && defined(EIFR) && defined(EIMSK)
-#  if (IR_INPUT_PIN == 2)
+#  if (IR_RECEIVE_PIN == 2)
     EICRA |= _BV(ISC00);  // interrupt on any logical change
     EIFR |= _BV(INTF0);     // clear interrupt bit
     EIMSK |= _BV(INT0);     // enable interrupt on next change
-#  elif (IR_INPUT_PIN == 3)
+#  elif (IR_RECEIVE_PIN == 3)
     EICRA |= _BV(ISC10);    // enable interrupt on pin3 on both edges for ATmega328
     EIFR |= _BV(INTF1);     // clear interrupt bit
     EIMSK |= _BV(INT1);     // enable interrupt on next change
 #  endif
 #else
-    attachInterrupt(digitalPinToInterrupt(IR_INPUT_PIN), measureTimingISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(IR_RECEIVE_PIN), measureTimingISR, CHANGE);
 #endif
-    Serial.println(F("Ready to analyze NEC IR signal at pin " STR(IR_INPUT_PIN)));
+    Serial.println(F("Ready to analyze NEC IR signal at pin " STR(IR_RECEIVE_PIN)));
     Serial.println();
 }
 
@@ -193,15 +193,13 @@ void loop()
  * The interrupt handler.
  * Just add to the appropriate timing structure.
  */
-#if defined(ESP8266)
-void ICACHE_RAM_ATTR measureTimingISR()
-#elif defined(ESP32)
+#if defined(ESP8266) || defined(ESP32)
 void IRAM_ATTR measureTimingISR()
 #else
 #  if defined(EICRA) && defined(EIFR) && defined(EIMSK)
-#    if (IR_INPUT_PIN == 2)
+#    if (IR_RECEIVE_PIN == 2)
 ISR(INT0_vect)
-#    elif (IR_INPUT_PIN == 3)
+#    elif (IR_RECEIVE_PIN == 3)
 ISR(INT1_vect)
 #    endif
 #  else
@@ -215,7 +213,7 @@ void measureTimingISR()
     /*
      * read level and give feedback
      */
-    uint8_t tInputLevel = digitalRead(IR_INPUT_PIN);
+    uint8_t tInputLevel = digitalRead(IR_RECEIVE_PIN);
     digitalWrite(LED_BUILTIN, !tInputLevel);
 
     if (tMicrosDelta > 10000)

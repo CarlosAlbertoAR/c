@@ -42,6 +42,10 @@
 //#define USE_LG2_PROTOCOL // Try it if you do not have success with the default LG protocol
 #define NUMBER_OF_COMMANDS_BETWEEN_PRINT_OF_MENU 5
 
+#if !defined(ARDUINO_ESP32C3_DEV) // This is due to a bug in RISC-V compiler, which requires unused function sections :-(.
+#define DISABLE_CODE_FOR_RECEIVER // Disables static receiver code like receive timer ISR handler and static IRReceiver and irparams data. Saves 450 bytes program memory and 269 bytes RAM if receiving functions are not required.
+#endif
+
 #define INFO // Deactivate this to save program memory and suppress info output from the LG-AC driver.
 //#define DEBUG // Activate this for more output from the LG-AC driver.
 
@@ -68,18 +72,14 @@ delay(4000); // To be able to connect Serial monitor after reset or power up and
 #endif
 // Just to know which program is running on my Arduino
     Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
+    Serial.println(F("Send IR signals at pin " STR(IR_SEND_PIN)));
 
     /*
      * The IR library setup. That's all!
      */
-#if defined(IR_SEND_PIN)
-    IrSender.begin(); // Start with IR_SEND_PIN as send pin and enable feedback LED at default feedback LED pin
-#else
-    IrSender.begin(3, ENABLE_LED_FEEDBACK); // Specify send pin and enable feedback LED at default feedback LED pin
-#endif
+    IrSender.begin(); // Start with IR_SEND_PIN -which is defined in PinDefinitionsAndMore.h- as send pin and enable feedback LED at default feedback LED pin
 
-    Serial.print(F("Ready to send IR signals at pin "));
-    Serial.println(IR_SEND_PIN);
+
     Serial.println();
     MyLG_Aircondition.setType(LG_IS_WALL_TYPE);
     MyLG_Aircondition.printMenu(&Serial);

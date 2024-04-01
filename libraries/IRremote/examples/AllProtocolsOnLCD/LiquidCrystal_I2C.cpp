@@ -1,9 +1,13 @@
 // Based on the work by DFRobot
 
+#include "Arduino.h"
+
+#if defined(__AVR__) && !defined(USE_SOFT_I2C_MASTER) && __has_include("SoftI2CMasterConfig.h")
+#define USE_SOFT_I2C_MASTER // must be before #include "LiquidCrystal_I2C.h"
+#endif
+
 #include "LiquidCrystal_I2C.h"
 #include <inttypes.h>
-
-#include "Arduino.h"
 
 inline size_t LiquidCrystal_I2C::write(uint8_t value) {
     send(value, Rs);
@@ -11,10 +15,12 @@ inline size_t LiquidCrystal_I2C::write(uint8_t value) {
 }
 
 #if defined(USE_SOFT_I2C_MASTER)
-#define USE_SOFT_I2C_MASTER_H_AS_PLAIN_INCLUDE
-#include "SoftI2CMaster.h"
-#else
-#define printIIC(args)  Wire.write(args)
+//#define USE_SOFT_I2C_MASTER_H_AS_PLAIN_INCLUDE
+#include "SoftI2CMasterConfig.h"    // Include configuration for sources
+#include "SoftI2CMaster.h"          // include sources
+#elif defined(USE_SOFT_WIRE)
+#define USE_SOFTWIRE_H_AS_PLAIN_INCLUDE
+#include "SoftWire.h"
 #endif
 
 // When the display powers up, it is configured as follows:
@@ -63,7 +69,7 @@ void LiquidCrystal_I2C::init_priv() {
     begin(_cols, _rows);
 }
 
-void LiquidCrystal_I2C::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
+void LiquidCrystal_I2C::begin(uint8_t cols __attribute__((unused)), uint8_t lines, uint8_t dotsize) {
     if (lines > 1) {
         _displayfunction |= LCD_2LINE;
     }
@@ -125,7 +131,7 @@ void LiquidCrystal_I2C::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
 /********** high level commands, for the user! */
 void LiquidCrystal_I2C::clear() {
     command(LCD_CLEARDISPLAY); // clear display, set cursor position to zero
-    delayMicroseconds(2000);  // this command takes a long time!
+    delayMicroseconds(1500);  // this command takes a long time! // AJ 20.9.23 1200 is too short for my 2004 LCD's, 1400 is OK
     if (_oled)
         setCursor(0, 0);
 }
@@ -261,17 +267,17 @@ void LiquidCrystal_I2C::expanderWrite(uint8_t _data) {
     i2c_write_byte(_Addr << 1, _data | _backlightval);
 #else
     Wire.beginTransmission(_Addr);
-    printIIC((int )(_data) | _backlightval);
+    Wire.write((int )(_data) | _backlightval);
     Wire.endTransmission();
 #endif
 }
 
 void LiquidCrystal_I2C::pulseEnable(uint8_t _data) {
     expanderWrite(_data | En);	// En high
-    delayMicroseconds(1);		// enable pulse must be >450ns
+//    delayMicroseconds(1);		// enable pulse must be >450ns // AJ 20.9.23 not required for my LCD's
 
     expanderWrite(_data & ~En);	// En low
-    delayMicroseconds(50);		// commands need > 37us to settle
+//    delayMicroseconds(50);      // commands need > 37us to settle // AJ 20.9.23 not required for my LCD's
 }
 
 // Alias functions
